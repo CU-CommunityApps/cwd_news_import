@@ -1,0 +1,76 @@
+<?php
+
+/**
+ * @file
+ * Chronicle News Feed functionality.
+ */
+
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\migrate\MigrateMessage;
+use Drupal\migrate\Plugin\MigrationInterface;
+use Drupal\migrate\Plugin\MigrateSourceInterface;
+use Drupal\migrate\Row;
+use Drupal\migrate_tools\MigrateExecutable;
+use Drupal\node\Entity\Node;
+
+/**
+ * Implements hook_cron().
+ */
+function cwd_news_import_cron() {
+  if (\Drupal::service('module_handler')->moduleExists('migrate_tools')) {
+    $request_time = \Drupal::time()->getRequestTime();
+
+    // Get the last execution time
+    $last_execution = \Drupal::state()->get('cwd_news_import.last_execution');
+    $last_execution = !empty($last_execution) ? $last_execution : 0;
+
+    // Check the time of the last execution and whether it is time for the next one
+    $interval = 28800; // 8 hours, in seconds
+    if ($request_time >= $last_execution + $interval) {
+      // Run the Chronicle News Feed migrations
+      _cwd_news_import_import_migration('news_chronicle_nodes_14252', FALSE);
+      _cwd_news_import_import_migration('news_chronicle_nodes_14245', FALSE);
+
+      // Set the last execution time and log a completion message
+      $last_execution = $request_time;
+      \Drupal::state()->set('cwd_news_import.last_execution', $request_time);
+      \Drupal::state()->set('cwd_news_import.update_node_status', TRUE);
+      \Drupal::logger('cwd_news_import')->notice('Chronicle News Feed migration complete');
+    }
+
+    /*// Get the update node status boolean
+    $update_node_status = \Drupal::state()->get('cwd_news_import.update_node_status');
+
+    // Check that the time is an hour after the last execution
+    $update_node_status_interval = 3000; // 50 minutes in seconds
+    if ($update_node_status && $request_time >= $last_execution + $update_node_status_interval) {
+
+      // Get all imported and unpublished News nodes and publish them
+      $imported_news = \Drupal::service('cwd_news_import.cwd_news_import_service')->loadUnmoderatedNodes('news');
+      if(!empty($imported_news)) {
+        \Drupal::service('cwd_news_import.cwd_news_import_service')->publishNodes($imported_news);
+      }
+      \Drupal::logger('cwd_news_import')->notice('Cornell Feed Migration: News nodes published: ' . count($imported_news));
+
+      \Drupal::state()->set('cwd_news_import.update_node_status', FALSE);
+    }*/
+  }
+}
+
+/*
+ * Import the specified migration.
+ */
+function _cwd_news_import_import_migration($migration_id, $update) {
+  $migrationPluginManager = \Drupal::service('plugin.manager.migration');
+  $migration = $migrationPluginManager->createInstance($migration_id);
+  $migrateMessage = new MigrateMessage();
+  $options = [
+    'feedback' => 100,
+  ];
+  if($update) {
+    $options['update'] = 1;
+    $migration->getIdMap()->prepareUpdate();
+  }
+  $executable = new MigrateExecutable($migration, $migrateMessage, $options);
+  $executable->import();
+}

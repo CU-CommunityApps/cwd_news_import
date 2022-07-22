@@ -1,0 +1,122 @@
+langcode: en
+status: true
+dependencies: {  }
+id: news_chronicle_nodes_14252
+class: null
+field_plugin_method: null
+cck_plugin_method: null
+migration_tags: null
+# Theoretically, another migration_group might be cwd_research_people, etc.
+migration_group: cwd_news_content
+label: 'Import Chronicle news nodes.'
+source:
+  plugin: url
+  data_fetcher_plugin: http
+  data_parser_plugin: json
+  urls:
+    - 'https://news.cornell.edu/taxonomy/term/14252/json'
+  # Flags whether to track changes to incoming data. If TRUE, we will maintain
+  # hashed source rows to determine whether incoming data has changed.
+  #track_changes: true
+  # Our feed doesn't have a selector like most examples out there.
+  # "/" came from a recommendation on Drupal Slack, pointing to this as a reference:
+  # https://git.drupalcode.org/sandbox/Bhanu951-3206377/-/blob/1.x-dev/modules/countries_list_migration/migrations/countries_list_json_migration.yml#L32
+  item_selector: /
+  # Under 'fields', we list the data items to be imported. The first level keys
+  # are the source field names we want to populate (the names to be used as
+  # sources in the process configuration below). For each field we're importing,
+  # we provide a label (optional - this is for display in migration tools) and
+  # an xpath for retrieving that value. It's important to note that this xpath
+  # is relative to the elements retrieved by item_selector.
+  fields:
+    -
+      name: source_nid
+      label: 'Source node ID'
+      selector: id
+    -
+      name: title
+      label: Title
+      selector: title
+    -
+      name: pub_date
+      label: 'Publication date'
+      selector: date_published
+    -
+      name: item_link
+      label: 'Item link'
+      selector: url
+    -
+      name: teaser_text
+      label: 'Teaser text'
+      selector: content_text
+  # Under 'ids', we identify source fields populated above which will uniquely
+  # identify each imported item. The 'type' makes sure the migration map table
+  # uses the proper schema type for stored the IDs.
+  ids:
+    source_nid:
+      type: string
+process:
+  check_for_node:
+    -
+      plugin: entity_lookup
+      source: source_nid
+      value_key: nid
+      bundle_key: type
+      bundle: news
+      entity_type: node
+    -
+      plugin: default_value # If lookup didn't find anything
+      default_value: 0
+  do_we_migrate:
+    # -
+    #   plugin: callback
+    #   callable: var_dump
+    #   source: '@check_for_node'
+    -
+      plugin: skip_on_value
+      source: '@check_for_node'
+      value: 0
+      not_equals: true # If check_for_node is NOT 0, skip this row.
+      method: row
+  # another_check:
+  #   -
+  #     plugin: skip_on_value
+  #     source: title
+  #     value: 'Ukrainian Cornellians look homeward with anxiety, concern'
+  #     method: row
+  type:
+    plugin: default_value
+    default_value: news
+  title: title
+  uid:
+    plugin: default_value
+    default_value: 1
+  status:
+    plugin: default_value
+    default_value: 0
+  field_post_date:
+    plugin: format_date
+    from_format: 'D, d M Y H:i:s e'
+    to_format: Y-m-d
+    source: pub_date
+  field_destination_url/uri: item_link
+  field_teaser/value: teaser_text
+  field_teaser/format:
+    plugin: default_value
+    default_value: filtered_html
+  # not using rn, saving for later
+  # field_image:
+  #   -
+  #     plugin: migration_lookup
+  #     migration: news_chronicle_images_media
+  #     source: source_nid
+  #     no_stub: true
+  #   -
+  #     plugin: skip_on_empty
+  #     method: process
+  #     message: 'Image field is empty.'
+destination:
+  plugin: 'entity:node'
+migration_dependencies:
+  required: {  }
+  optional: {  }

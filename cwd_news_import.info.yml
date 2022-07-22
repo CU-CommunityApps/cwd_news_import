@@ -1,0 +1,11 @@
+# TO DO: Change "human name" to be broader so we can use this module for importing news from the main Research site later......?
+name: Chronicle News Feed
+type: module
+description: 'Migration to import content from Chronicle as unpublished news nodes.'
+package: Cornell
+core_version_requirement: ^8.8 || ^9
+dependencies:
+  - drupal:migrate
+  # - drupal:migrate_drupal
+  - migrate_plus:migrate_plus
+  - migrate_tools:migrate_tools

@@ -1,0 +1,13 @@
+uuid: ae3af6f2-ad86-4424-8f32-c7310fca968c
+langcode: en
+status: true
+dependencies: {  }
+id: cwd_news_content
+label: 'News content imports'
+description: 'Various migrations to import news content (from Chronicle or the main Research site).'
+source_type: 'JSON feed'
+module: null
+shared_configuration:
+  migration_tags:
+    - feed
+    - node

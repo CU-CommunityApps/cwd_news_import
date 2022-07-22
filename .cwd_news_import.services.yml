@@ -1,0 +1,4 @@
+services:
+  cwd_news_import.cwd_news_import_service:
+    class: Drupal\cwd_news_import\CwdNewsImportService
+    arguments: ["@entity_type.manager"]

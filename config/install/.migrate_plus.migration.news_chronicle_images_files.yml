@@ -1,0 +1,92 @@
+uuid: 96419c1b-d308-465d-a29f-a199bf5edda2
+langcode: en
+status: true
+dependencies: {  }
+id: news_chronicle_images_files
+class: null
+field_plugin_method: null
+cck_plugin_method: null
+migration_tags: null
+migration_group: cwd_news_content
+label: 'Import remote media import for images on Chronicle news items.'
+source:
+  plugin: url
+  data_fetcher_plugin: http
+  data_parser_plugin: json
+  urls:
+    - 'https://news.cornell.edu/taxonomy/term/14252/json'
+    - 'https://news.cornell.edu/taxonomy/term/14245/json'
+    # TO DO: This term (below) includes an item with no image -- make sure to test before calling this thing done.
+    # - 'https://news.cornell.edu/taxonomy/term/61/json'
+  # DO WE NEED track_changes ON THE FILES MIGRATION.....??
+  track_changes: true
+  item_selector: /
+  constants:
+    source_base_path: 'https://news.cornell.edu/'
+    destination_directory: 'public://news-import'
+  fields:
+    -
+      name: image_thumbnail
+      label: 'Image thumbnail'
+      selector: image_featured
+    -
+      name: source_parent_nid
+      label: 'Parent node ID on source'
+      selector: id
+    -
+      # Use "image" field for checking image existence, b/c "image_featured" is not present when there's no image (but value of "image" is "false" when there's no image -- works for what we need).
+      name: image_check
+      label: 'Check if image exists on this row'
+      selector: image
+  # ids:
+  #   image_thumbnail:
+  #     type: string
+  ids:
+    source_parent_nid:
+      type: string
+process:
+  do_image_check:
+    plugin: skip_on_empty
+    method: row
+    source: image_check
+    message: 'No image on this story.'
+  pseudo_filename_raw:
+    -
+      plugin: callback
+      source: image_thumbnail
+      callable: basename
+    -
+      plugin: transliteration
+    -
+      # is this skip_on_empty necessary, now that we have "do_image_check" above...?
+      plugin: skip_on_empty
+      method: row
+      message: 'Cannot import missing image URL.'
+  pseudo_filename:
+    -
+      plugin: str_replace
+      regex: true
+      source: '@pseudo_filename_raw'
+      search: '/(\.[a-zA-Z]{3,4})\?[a-z]+\=\S+$/'
+      replace: $1
+  pseudo_destination_path:
+    -
+      plugin: concat
+      delimiter: /
+      source:
+        - constants/destination_directory
+        - '@pseudo_filename'
+  uri:
+    plugin: download
+    source:
+      - image_thumbnail
+      - '@pseudo_destination_path'
+    file_exists: 'use existing'
+  status:
+    plugin: default_value
+    default_value: 1
+destination:
+  plugin: 'entity:file'
+migration_dependencies:
+  required: {  }
+  optional: {  }
